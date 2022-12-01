@@ -1,10 +1,13 @@
 import java.io.UnsupportedEncodingException;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+
+import java.util.Base64;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -18,13 +21,18 @@ import javax.crypto.IllegalBlockSizeException;
 public class Sender {
   public static void main(String[] args) {
     //String myPrivateKey = "";
-    Key p2PublicKey;
+    SecretKey p2PublicKey;
+    SecretKey AESKey;
     String message = "";
-    String AESKey = "";
     String ciphertext = "";
     String encryptedAESKey = "";
     String MAC = "";
-    IvParameterSpec iv;
+    String aesAlgorithm = "AES/CBC/PKCS5Padding";
+    String rsaAlgorithm = "RSA/CBC/PKCS1Padding";
+    byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0 };
+    IvParameterSpec rsaiv = new IvParameterSpec(iv);
+    IvParameterSpec AESIV = new IvParameterSpec(iv);
 
     try {
       //Creating KeyPair generator object
@@ -36,7 +44,7 @@ public class Sender {
       //Generating the pair of keys
       KeyPair pair = keyPairGen.generateKeyPair();
 
-      iv = generateIv();
+      //iv = generateIv();
 
 
 
@@ -52,9 +60,9 @@ public class Sender {
       //Creating/Generating a key
       Key key = keyGen.generateKey();
     
-    
-      ciphertext = encryptAES(message, AESKey);
-      encryptedAESKey = encryptRSA(AESKey, p2PublicKey, iv);
+      
+      ciphertext = encrypt(aesAlgorithm, message, AESKey, AESIV);
+      encryptedAESKey = encrypt(rsaAlgorithm, convertSecretKeyToString(AESKey), p2PublicKey, rsaiv);
       MAC = generateMAC(encryptedAESKey+ciphertext, key);
       // write MAC+encryptedAESKey+ciphertext to TransmittedData
     } catch (Exception e) {
@@ -77,22 +85,18 @@ public class Sender {
     return new IvParameterSpec(iv);
   }
 
-  private static String encryptAES(String message, String key) {
-    String result = "";
-    return result;
+  public static String convertSecretKeyToString(SecretKey secretKey) throws NoSuchAlgorithmException {
+    byte[] rawData = secretKey.getEncoded();
+    String encodedKey = Base64.getEncoder().encodeToString(rawData);
+    return encodedKey;
   }
 
-  private static String encryptRSA(String message, Key key, IvParameterSpec iv) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException {
-    String result = "";
-      
-          
-
-    //Creating a Cipher object
-    Cipher cipher = Cipher.getInstance("RSA/CBC/PKCS1Padding");
-      
-    //Initializing a Cipher object
-    cipher.init(Cipher.ENCRYPT_MODE, key);
-  
+  public static String encrypt(String algorithm, String message, SecretKey key, IvParameterSpec iv) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException, InvalidAlgorithmParameterException {
+    
+    //Creating a cipher object
+    Cipher cipher = Cipher.getInstance(algorithm);
+    cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+    
     //Adding data to the cipher
     byte[] input = message.getBytes();	  
     cipher.update(input);
@@ -100,7 +104,6 @@ public class Sender {
     //encrypting the data
     byte[] cipherText = cipher.doFinal();	 
     return new String(cipherText, "UTF8");
-    
   }
 
   private static String generateMAC(String message, Key key) throws NoSuchAlgorithmException, InvalidKeyException {	 
