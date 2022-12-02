@@ -4,6 +4,8 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -24,9 +26,9 @@ import javax.crypto.IllegalBlockSizeException;
 public class KeyGeneration {
   public static void main(String[] args) {
     try {
-      SecretKey k = generateKey(256);
-      String key = convertSecretKeyToString(k);
-      System.out.println("my key: " + key);
+      KeyPair kp = generateRSAPair();
+      PrivateKey privateKey = kp.getPrivate();
+      PublicKey publicKey = kp.getPublic();
       
     } catch (Exception e) {
       System.out.println(e.getMessage());
@@ -38,6 +40,19 @@ public class KeyGeneration {
     keyGenerator.init(n);
     SecretKey key = keyGenerator.generateKey();
     return key;
+  }
+
+  public static KeyPair generateRSAPair() throws NoSuchAlgorithmException {
+    //Creating KeyPair generator object
+    KeyPairGenerator keyPairGen = KeyPairGenerator.getInstance("RSA");
+      
+    //Initializing the key pair generator
+    keyPairGen.initialize(2048);
+    
+    //Generating the pair of keys
+    KeyPair pair = keyPairGen.generateKeyPair();
+
+    return pair;
   }
 
   public static String convertSecretKeyToString(SecretKey secretKey) throws NoSuchAlgorithmException {

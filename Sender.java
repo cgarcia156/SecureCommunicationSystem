@@ -1,3 +1,5 @@
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -8,6 +10,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 
 import java.util.Base64;
+import java.util.Scanner;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -31,10 +34,22 @@ public class Sender {
     String rsaAlgorithm = "RSA/CBC/PKCS1Padding";
     byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0 };
-    IvParameterSpec rsaiv = new IvParameterSpec(iv);
+    IvParameterSpec RSAIV = new IvParameterSpec(iv);
     IvParameterSpec AESIV = new IvParameterSpec(iv);
 
     try {
+      // Generate an AES key
+      AESKey = generateKey(256);
+      String AESKeyString = convertSecretKeyToString(AESKey);
+
+      message = readFile("party1message.txt");
+
+      ciphertext = encrypt(aesAlgorithm, message, AESKey, AESIV);
+
+      
+
+      encryptedAESKey = encrypt(rsaAlgorithm, AESKeyString, , RSAIV);
+
       //Creating KeyPair generator object
       KeyPairGenerator keyPairGen = KeyPairGenerator.getInstance("RSA");
       
@@ -70,6 +85,18 @@ public class Sender {
       System.out.println("ERROR: " + e.getMessage());
     }
     
+  }
+
+  public static String readFile(String filename) throws FileNotFoundException {
+    File file = new File(filename);
+    Scanner reader = new Scanner(file);
+    String data = "";
+    while (reader.hasNextLine()) {
+      data += reader.nextLine();
+    }
+    reader.close();
+
+    return data;
   }
 
   public static SecretKey generateKey(int n) throws NoSuchAlgorithmException {
