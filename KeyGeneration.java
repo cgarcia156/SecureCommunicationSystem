@@ -1,4 +1,6 @@
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -11,6 +13,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 
 import java.util.Base64;
+import java.util.Scanner;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -29,7 +32,11 @@ public class KeyGeneration {
       KeyPair kp = generateRSAPair();
       PrivateKey privateKey = kp.getPrivate();
       PublicKey publicKey = kp.getPublic();
-      
+      String privateKeyString = Base64.getEncoder().encodeToString(privateKey.getEncoded());
+      String publicKeyString = Base64.getEncoder().encodeToString(publicKey.getEncoded());
+      writeToFile("party1PrivateKey.txt", privateKeyString);
+      writeToFile("party1PublicKey.txt", publicKeyString);
+
     } catch (Exception e) {
       System.out.println(e.getMessage());
     }
@@ -65,7 +72,13 @@ public class KeyGeneration {
     byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
     SecretKey originalKey = new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
     return originalKey;
-}
+  }
+
+  public static void writeToFile(String filename, String data) throws IOException {
+    FileWriter writer = new FileWriter(filename);
+    writer.write(data);
+    writer.close();
+  }
 
 
 
