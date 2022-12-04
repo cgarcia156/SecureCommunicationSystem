@@ -1,7 +1,8 @@
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.io.Writer;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -10,8 +11,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.spec.X509EncodedKeySpec;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 
 import java.util.Base64;
 import java.util.Scanner;
@@ -30,7 +29,6 @@ public class Sender {
     KeyGenerator keyGen;
     SecureRandom secRandom;
     Key MACKey;
-    //String myPrivateKey = "";
     String p2PublicKeyString = "";
     PublicKey p2PublicKey;
     SecretKey AESKey;
@@ -49,7 +47,7 @@ public class Sender {
 
     try {
       // Generate an AES key
-      AESKey = generateKey(256);
+      AESKey = generateAESKey(256);
       AESKeyString = convertSecretKeyToString(AESKey);
 
       message = readFile("party1message.txt");
@@ -75,14 +73,21 @@ public class Sender {
       MAC = generateMAC(encryptedAESKey+ciphertext, MACKey);
 
       // Write MAC+encryptedAESKey+ciphertext to TransmittedData
+      writeToFile("TransmittedData.txt", MAC+encryptedAESKey+ciphertext);
 
     } catch (Exception e) {
-      // handle exception
+      // Handle exception
       System.out.println("ERROR: " + e.getMessage());
     }
     
   }
 
+  /**
+   * Reads the specified file
+   * @param filename
+   * @return (String) data
+   * @throws FileNotFoundException
+   */
   public static String readFile(String filename) throws FileNotFoundException {
     File file = new File(filename);
     Scanner reader = new Scanner(file);
@@ -95,55 +100,121 @@ public class Sender {
     return data;
   }
 
-  public static SecretKey generateKey(int n) throws NoSuchAlgorithmException {
+  /**
+   * Writes data to the specified file
+   * @param filename
+   * @param data
+   * @throws IOException
+   */
+  public static void writeToFile(String filename, String data) throws IOException {
+    FileWriter writer = new FileWriter(filename);
+    writer.write(data);
+    writer.close();
+  }
+
+  /**
+   * Generates an AES key of the given length
+   * @param keySize
+   * @return (SecretKey) key
+   * @throws NoSuchAlgorithmException
+   */
+  public static SecretKey generateAESKey(int keySize) throws NoSuchAlgorithmException {
     KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
-    keyGenerator.init(n);
+    keyGenerator.init(keySize);
     SecretKey key = keyGenerator.generateKey();
     return key;
   }
 
+  /**
+   * Generates a random IV
+   * @return (IvParameterSpec)
+   */
   public static IvParameterSpec generateIv() {
     byte[] iv = new byte[16];
     new SecureRandom().nextBytes(iv);
     return new IvParameterSpec(iv);
   }
 
+  /**
+   * Converts a SecretKey to a String
+   * @param secretKey
+   * @return (String)
+   * @throws NoSuchAlgorithmException
+   */
   public static String convertSecretKeyToString(SecretKey secretKey) throws NoSuchAlgorithmException {
     byte[] rawData = secretKey.getEncoded();
     String encodedKey = Base64.getEncoder().encodeToString(rawData);
     return encodedKey;
   }
 
+  /**
+   * Encrypts using the given algorithm, message, SecretKey, and iv
+   * @param algorithm
+   * @param message
+   * @param key
+   * @param iv
+   * @return (String) the ciphertext
+   * @throws InvalidKeyException
+   * @throws NoSuchAlgorithmException
+   * @throws NoSuchPaddingException
+   * @throws BadPaddingException
+   * @throws IllegalBlockSizeException
+   * @throws UnsupportedEncodingException
+   * @throws InvalidAlgorithmParameterException
+   */
   public static String encrypt(String algorithm, String message, SecretKey key, IvParameterSpec iv) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException, InvalidAlgorithmParameterException {
     
-    //Creating a cipher object
+    // Create a cipher object
     Cipher cipher = Cipher.getInstance(algorithm);
     cipher.init(Cipher.ENCRYPT_MODE, key, iv);
     
-    //Adding data to the cipher
+    // Add data to the cipher
     byte[] input = message.getBytes();	  
     cipher.update(input);
   
-    //encrypting the data
+    // Encrypt the data
     byte[] cipherText = cipher.doFinal();	 
     return new String(cipherText, "UTF8");
   }
 
+  /**
+   * Encrypts using the given algorithm, message, PublicKey, and iv
+   * @param algorithm
+   * @param message
+   * @param key
+   * @param iv
+   * @return (String) the ciphertext
+   * @throws InvalidKeyException
+   * @throws NoSuchAlgorithmException
+   * @throws NoSuchPaddingException
+   * @throws BadPaddingException
+   * @throws IllegalBlockSizeException
+   * @throws UnsupportedEncodingException
+   * @throws InvalidAlgorithmParameterException
+   */
   public static String encryptRSA(String algorithm, String message, PublicKey key, IvParameterSpec iv) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException, InvalidAlgorithmParameterException {
     
-    //Creating a cipher object
+    // Create a cipher object
     Cipher cipher = Cipher.getInstance(algorithm);
     cipher.init(Cipher.ENCRYPT_MODE, key, iv);
     
-    //Adding data to the cipher
+    // Add data to the cipher
     byte[] input = message.getBytes();	  
     cipher.update(input);
   
-    //encrypting the data
+    // Encrypt the data
     byte[] cipherText = cipher.doFinal();	 
     return new String(cipherText, "UTF8");
   }
 
+  /**
+   * Generates a MAC (HMACSHA256) of the message with the given key
+   * @param message
+   * @param key
+   * @return (String) the MAC
+   * @throws NoSuchAlgorithmException
+   * @throws InvalidKeyException
+   */
   private static String generateMAC(String message, Key key) throws NoSuchAlgorithmException, InvalidKeyException {	 
     //Creating a Mac object
     Mac mac = Mac.getInstance("HmacSHA256");
