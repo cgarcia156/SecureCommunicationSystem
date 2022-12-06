@@ -1,8 +1,10 @@
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -34,9 +36,10 @@ public class Sender {
     SecretKey AESKey;
     String AESKeyString = "";
     String message = "";
-    String ciphertext = "";
-    String encryptedAESKey = "";
-    String MAC = "";
+    byte[] ciphertext;
+    byte[] encryptedAESKey;
+    byte[] MAC;
+    byte[] data;
     String aesAlgorithm = "AES/CBC/PKCS5Padding";
     byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0 };
@@ -68,10 +71,12 @@ public class Sender {
       MACKey = keyGen.generateKey();
 
       // Generate a MAC
-      MAC = generateMAC(encryptedAESKey+ciphertext, MACKey);
+      data = joinByteArray(encryptedAESKey, ciphertext);
+      MAC = generateMAC(data, MACKey);
 
+      data = joinByteArray(MAC, data);
       // Write MAC+encryptedAESKey+ciphertext to TransmittedData
-      writeToFile("TransmittedData.txt", MAC+encryptedAESKey+ciphertext);
+      writeBytes("TransmittedData.txt", data);
 
     } catch (Exception e) {
       // Handle exception
@@ -110,9 +115,16 @@ public class Sender {
     writer.close();
   }
 
+  public static void writeBytes(String filename, byte[] data) throws IOException {
+    File file = new File(filename);
+    FileOutputStream writer = new FileOutputStream(file);
+    writer.write(data);
+    writer.close();
+  }
+
   /**
-   * Generates an AES key of the given length
-   * @param keySize
+   * Generates an AES key of the given length (in bits)
+   * @param keySize 
    * @return (SecretKey) key
    * @throws NoSuchAlgorithmException
    */
@@ -160,7 +172,7 @@ public class Sender {
    * @throws UnsupportedEncodingException
    * @throws InvalidAlgorithmParameterException
    */
-  public static String encrypt(String algorithm, String message, SecretKey key, IvParameterSpec iv) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException, InvalidAlgorithmParameterException {
+  public static byte[] encrypt(String algorithm, String message, SecretKey key, IvParameterSpec iv) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException, InvalidAlgorithmParameterException {
     
     // Create a cipher object
     Cipher cipher = Cipher.getInstance(algorithm);
@@ -171,21 +183,8 @@ public class Sender {
   
     // Encrypt the data
     byte[] cipherText = cipher.doFinal(input);	 
-    return Base64.getEncoder().encodeToString(cipherText);
+    return cipherText;
   }
-
-  public static String decrypt(String algorithm, String cipherText, SecretKey key,
-    IvParameterSpec iv) throws NoSuchPaddingException, NoSuchAlgorithmException,
-    InvalidAlgorithmParameterException, InvalidKeyException,
-    BadPaddingException, IllegalBlockSizeException {
-    
-    Cipher cipher = Cipher.getInstance(algorithm);
-    cipher.init(Cipher.DECRYPT_MODE, key, iv);
-
-    byte[] plainText = cipher.doFinal(Base64.getDecoder().decode(cipherText));
-
-    return new String(plainText);
-}
 
   /**
    * Encrypts using the given algorithm, message, PublicKey, and iv
@@ -193,7 +192,7 @@ public class Sender {
    * @param message
    * @param key
    * @param iv
-   * @return (String) the ciphertext
+   * @return (byte[]) the ciphertext
    * @throws InvalidKeyException
    * @throws NoSuchAlgorithmException
    * @throws NoSuchPaddingException
@@ -202,7 +201,7 @@ public class Sender {
    * @throws UnsupportedEncodingException
    * @throws InvalidAlgorithmParameterException
    */
-  public static String encryptRSA(String message, PublicKey key) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException, InvalidAlgorithmParameterException {
+  public static byte[] encryptRSA(String message, PublicKey key) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException, InvalidAlgorithmParameterException {
     
     // Create a cipher object
     Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
@@ -214,7 +213,7 @@ public class Sender {
   
     // Encrypt the data
     byte[] cipherText = cipher.doFinal();	 
-    return new String(cipherText, "UTF8");
+    return cipherText;
   }
 
   /**
@@ -225,7 +224,7 @@ public class Sender {
    * @throws NoSuchAlgorithmException
    * @throws InvalidKeyException
    */
-  private static String generateMAC(String message, Key key) throws NoSuchAlgorithmException, InvalidKeyException {	 
+  private static byte[] generateMAC(byte[] message, Key key) throws NoSuchAlgorithmException, InvalidKeyException {	 
     //Creating a Mac object
     Mac mac = Mac.getInstance("HmacSHA256");
 
@@ -233,9 +232,17 @@ public class Sender {
     mac.init(key);
 
     //Computing the Mac
-    byte[] bytes = message.getBytes();      
-    byte[] macResult = mac.doFinal(bytes);
-
-    return new String(macResult);
+    byte[] macResult = mac.doFinal(message);
+    
+    return macResult;
   }
+
+  public static byte[] joinByteArray(byte[] byte1, byte[] byte2) {
+
+    return ByteBuffer.allocate(byte1.length + byte2.length)
+            .put(byte1)
+            .put(byte2)
+            .array();
+
+}
 }
