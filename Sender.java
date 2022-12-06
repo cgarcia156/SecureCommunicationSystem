@@ -38,18 +38,16 @@ public class Sender {
     String encryptedAESKey = "";
     String MAC = "";
     String aesAlgorithm = "AES/CBC/PKCS5Padding";
-    String rsaAlgorithm = "RSA/CBC/PKCS1Padding";
     byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0 };
     byte[] publicKeyBytes;
-    IvParameterSpec RSAIV = new IvParameterSpec(iv);
     IvParameterSpec AESIV = new IvParameterSpec(iv);
 
     try {
       // Generate an AES key
       AESKey = generateAESKey(256);
       AESKeyString = convertSecretKeyToString(AESKey);
-
+      
       message = readFile("party1message.txt");
 
       // Encrypt our message with AES
@@ -61,7 +59,7 @@ public class Sender {
       p2PublicKey = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(publicKeyBytes));
 
       // Encrypt the AES key with the receiver's public key
-      encryptedAESKey = encryptRSA(rsaAlgorithm, AESKeyString, p2PublicKey , RSAIV);
+      encryptedAESKey = encryptRSA(AESKeyString, p2PublicKey);
 
       // Generate a key to use for MAC
       keyGen = KeyGenerator.getInstance("HmacSHA256");
@@ -168,14 +166,26 @@ public class Sender {
     Cipher cipher = Cipher.getInstance(algorithm);
     cipher.init(Cipher.ENCRYPT_MODE, key, iv);
     
-    // Add data to the cipher
-    byte[] input = message.getBytes();	  
-    cipher.update(input);
+    byte[] input = message.getBytes("UTF-8");
+    cipher.update(input);  
   
     // Encrypt the data
-    byte[] cipherText = cipher.doFinal();	 
-    return new String(cipherText, "UTF8");
+    byte[] cipherText = cipher.doFinal(input);	 
+    return Base64.getEncoder().encodeToString(cipherText);
   }
+
+  public static String decrypt(String algorithm, String cipherText, SecretKey key,
+    IvParameterSpec iv) throws NoSuchPaddingException, NoSuchAlgorithmException,
+    InvalidAlgorithmParameterException, InvalidKeyException,
+    BadPaddingException, IllegalBlockSizeException {
+    
+    Cipher cipher = Cipher.getInstance(algorithm);
+    cipher.init(Cipher.DECRYPT_MODE, key, iv);
+
+    byte[] plainText = cipher.doFinal(Base64.getDecoder().decode(cipherText));
+
+    return new String(plainText);
+}
 
   /**
    * Encrypts using the given algorithm, message, PublicKey, and iv
@@ -192,11 +202,11 @@ public class Sender {
    * @throws UnsupportedEncodingException
    * @throws InvalidAlgorithmParameterException
    */
-  public static String encryptRSA(String algorithm, String message, PublicKey key, IvParameterSpec iv) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException, InvalidAlgorithmParameterException {
+  public static String encryptRSA(String message, PublicKey key) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException, InvalidAlgorithmParameterException {
     
     // Create a cipher object
-    Cipher cipher = Cipher.getInstance(algorithm);
-    cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+    Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+    cipher.init(Cipher.ENCRYPT_MODE, key);
     
     // Add data to the cipher
     byte[] input = message.getBytes();	  

@@ -49,6 +49,11 @@ public class KeyGeneration {
     return key;
   }
 
+  /**
+   * Creates a keypair for RSA
+   * @return (KeyPair)
+   * @throws NoSuchAlgorithmException
+   */
   public static KeyPair generateRSAPair() throws NoSuchAlgorithmException {
     //Creating KeyPair generator object
     KeyPairGenerator keyPairGen = KeyPairGenerator.getInstance("RSA");
@@ -62,26 +67,45 @@ public class KeyGeneration {
     return pair;
   }
 
+  /**
+   * Converts a SecretKey to a String
+   * @param secretKey
+   * @return (String)
+   * @throws NoSuchAlgorithmException
+   */
   public static String convertSecretKeyToString(SecretKey secretKey) throws NoSuchAlgorithmException {
     byte[] rawData = secretKey.getEncoded();
     String encodedKey = Base64.getEncoder().encodeToString(rawData);
     return encodedKey;
   }
 
-  public static SecretKey convertStringToSecretKeyto(String encodedKey) {
+  /**
+   * Converts a String to a SecretKey
+   * @param encodedKey
+   * @return (SecretKey)
+   */
+  public static SecretKey convertStringToSecretKey(String encodedKey) {
     byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
     SecretKey originalKey = new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
     return originalKey;
   }
 
+  /**
+   * Writes data to the specified file
+   * @param filename
+   * @param data
+   * @throws IOException
+   */
   public static void writeToFile(String filename, String data) throws IOException {
     FileWriter writer = new FileWriter(filename);
     writer.write(data);
     writer.close();
   }
 
-
-
+  /**
+   * Generates a random IV
+   * @return (IvParameterSpec)
+   */
   public static IvParameterSpec generateIv() {
     byte[] iv = new byte[16];
     new SecureRandom().nextBytes(iv);
