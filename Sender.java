@@ -1,10 +1,10 @@
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -20,6 +20,7 @@ import java.util.Scanner;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import javax.crypto.Mac;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.BadPaddingException;
@@ -28,9 +29,7 @@ import javax.crypto.IllegalBlockSizeException;
 
 public class Sender {
   public static void main(String[] args) {
-    KeyGenerator keyGen;
-    SecureRandom secRandom;
-    Key MACKey;
+    SecretKey MACKey;
     String p2PublicKeyString = "";
     PublicKey p2PublicKey;
     SecretKey AESKey;
@@ -40,6 +39,7 @@ public class Sender {
     byte[] encryptedAESKey;
     byte[] MAC;
     byte[] data;
+    byte[] encodedKey;
     String aesAlgorithm = "AES/CBC/PKCS5Padding";
     byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0 };
@@ -64,17 +64,15 @@ public class Sender {
       // Encrypt the AES key with the receiver's public key
       encryptedAESKey = encryptRSA(AESKeyString, p2PublicKey);
 
-      // Generate a key to use for MAC
-      keyGen = KeyGenerator.getInstance("HmacSHA256");
-      secRandom = new SecureRandom();
-      keyGen.init(secRandom);
-      MACKey = keyGen.generateKey();
-
       // Generate a MAC
       data = joinByteArray(encryptedAESKey, ciphertext);
+      encodedKey = (Base64.getDecoder().decode(readFile("mackey.txt")));
+      MACKey = new SecretKeySpec(encodedKey,0,encodedKey.length,"HmacSHA256");
+      
       MAC = generateMAC(data, MACKey);
-
+      
       data = joinByteArray(MAC, data);
+      
       // Write MAC+encryptedAESKey+ciphertext to TransmittedData
       writeBytes("TransmittedData.txt", data);
 
@@ -230,19 +228,18 @@ public class Sender {
 
     //Initializing the Mac object
     mac.init(key);
-
+    
     //Computing the Mac
     byte[] macResult = mac.doFinal(message);
     
     return macResult;
   }
 
-  public static byte[] joinByteArray(byte[] byte1, byte[] byte2) {
+  public static byte[] joinByteArray(byte[] byte1, byte[] byte2) throws IOException {
+    ByteArrayOutputStream outputStream = new ByteArrayOutputStream( );
+    outputStream.write(byte1);
+    outputStream.write(byte2);
 
-    return ByteBuffer.allocate(byte1.length + byte2.length)
-            .put(byte1)
-            .put(byte2)
-            .array();
-
-}
+    return outputStream.toByteArray();
+  }
 }
