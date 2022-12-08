@@ -49,7 +49,6 @@ public class Sender {
     try {
       // Generate an AES key
       AESKey = generateAESKey(256);
-      AESKeyString = convertSecretKeyToString(AESKey);
       
       message = readFile("party1message.txt");
 
@@ -62,7 +61,10 @@ public class Sender {
       p2PublicKey = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(publicKeyBytes));
 
       // Encrypt the AES key with the receiver's public key
-      encryptedAESKey = encryptRSA(AESKeyString, p2PublicKey);
+      encryptedAESKey = encryptRSA(AESKey.getEncoded(), p2PublicKey);
+
+      System.out.println(Base64.getEncoder().encodeToString(AESKey.getEncoded()));
+      System.out.println(Base64.getEncoder().encodeToString(encryptedAESKey));
 
       // Generate a MAC
       data = joinByteArray(encryptedAESKey, ciphertext);
@@ -199,15 +201,14 @@ public class Sender {
    * @throws UnsupportedEncodingException
    * @throws InvalidAlgorithmParameterException
    */
-  public static byte[] encryptRSA(String message, PublicKey key) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException, InvalidAlgorithmParameterException {
+  public static byte[] encryptRSA(byte[] message, PublicKey key) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException, InvalidAlgorithmParameterException {
     
     // Create a cipher object
     Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
     cipher.init(Cipher.ENCRYPT_MODE, key);
     
-    // Add data to the cipher
-    byte[] input = message.getBytes();	  
-    cipher.update(input);
+    // Add data to the cipher  
+    cipher.update(message);
   
     // Encrypt the data
     byte[] cipherText = cipher.doFinal();	 

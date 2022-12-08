@@ -2,13 +2,18 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Scanner;
@@ -53,7 +58,18 @@ public class Receiver {
         System.out.println("Message Validated");
       }
 
+      // Get our private key
+      String p2PrivateKeyString = readFile("party2PrivateKey.txt");
+      byte[] privateKeyBytes = Base64.getDecoder().decode(p2PrivateKeyString);
+      PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
+      KeyFactory kf = KeyFactory.getInstance("RSA");
+      PrivateKey p2PrivateKey = kf.generatePrivate(keySpec);
 
+      System.out.println(Base64.getEncoder().encodeToString(p2PrivateKey.getEncoded()));
+      System.out.println(Base64.getEncoder().encodeToString(encryptedAESKey));
+      
+      byte[] AESKey = decryptRSA(encryptedAESKey, p2PrivateKey);
+      System.out.println(Base64.getEncoder().encodeToString(AESKey));
       
     } catch (Exception e) {
       System.out.println("ERROR: " + e.getMessage());
@@ -97,6 +113,36 @@ public class Receiver {
 
     return new String(plainText);
   } 
+
+  /**
+   * Decrypts using the given algorithm, message, PublicKey, and iv
+   * @param algorithm
+   * @param message
+   * @param key
+   * @param iv
+   * @return (byte[]) the ciphertext
+   * @throws InvalidKeyException
+   * @throws NoSuchAlgorithmException
+   * @throws NoSuchPaddingException
+   * @throws BadPaddingException
+   * @throws IllegalBlockSizeException
+   * @throws UnsupportedEncodingException
+   * @throws InvalidAlgorithmParameterException
+   */
+  public static byte[] decryptRSA(byte[] ciphertext, PrivateKey key) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException, InvalidAlgorithmParameterException {
+    
+    // Create a cipher object
+    Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+    cipher.init(Cipher.DECRYPT_MODE, key);
+    
+    // Add data to the cipher
+    cipher.update(ciphertext);
+  
+    // Encrypt the data
+    byte[] cipherText = cipher.doFinal();	 
+    return cipherText;
+
+  }
 
   /**
    * Generates a MAC (HMACSHA256) of the message with the given key
