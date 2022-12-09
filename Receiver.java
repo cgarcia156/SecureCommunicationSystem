@@ -28,29 +28,52 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class Receiver {
   public static void main(String[] args) {
+    Path filePath;
+    long fileSize;
+    byte[] data;
+    byte[] MAC;
+    byte[] encryptedAESKey;
+    byte[] ciphertext;
+    byte[] MACinput;
+    byte[] encodedMACKey;
+    byte[] generatedMAC;
+    byte[] encodedAESKey;
+    byte[] privateKeyBytes;
+    SecretKey MACKey;
+    SecretKey AESKey;
+    PrivateKey p2PrivateKey;
+    boolean validMAC;
+    KeyFactory kf;
+    PKCS8EncodedKeySpec keySpec;
+    String message = "";
+    String p2PrivateKeyString = "";
     String aesAlgorithm = "AES/CBC/PKCS5Padding";
-    byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0,
+    byte[] defaultIV = { 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0 };
-    IvParameterSpec AESIV = new IvParameterSpec(iv);
+    IvParameterSpec AESIV = new IvParameterSpec(defaultIV);
+
     try {
       System.out.println("---------------------------------------------------");
-      Path filePath = Paths.get("TransmittedData.txt");
-      long fileSize = Files.size(filePath);
-      
-      byte[] data = readBytes("TransmittedData.txt");
-      byte[] MAC = Arrays.copyOfRange(data, 0, 32);
 
-      byte[] encryptedAESKey = Arrays.copyOfRange(data, 32, 288);
-      byte[] ciphertext = Arrays.copyOfRange(data, 288, (int)(fileSize));
+      // Read the data into a byte array
+      filePath = Paths.get("TransmittedData.txt");
+      fileSize = Files.size(filePath);
+      data = readBytes("TransmittedData.txt");
 
-      byte[] MACinput = joinByteArray(encryptedAESKey, ciphertext);
+      // Divide the data into the MAC, encrypted key, and ciphertext
+      MAC = Arrays.copyOfRange(data, 0, 32);
+      encryptedAESKey = Arrays.copyOfRange(data, 32, 288);
+      ciphertext = Arrays.copyOfRange(data, 288, (int)(fileSize));
 
-      byte[] encodedMACKey = (Base64.getDecoder().decode(readFile("mackey.txt")));
-      SecretKey MACKey = new SecretKeySpec(encodedMACKey,0,encodedMACKey.length,"HmacSHA256");
-      byte[] generatedMAC = generateMAC(MACinput, MACKey);
+      MACinput = joinByteArray(encryptedAESKey, ciphertext);
 
-      boolean validMAC = Arrays.equals(MAC, generatedMAC);
+      // Generate a MAC based on the rest of the encrypted data
+      encodedMACKey = (Base64.getDecoder().decode(readFile("mackey.txt")));
+      MACKey = new SecretKeySpec(encodedMACKey,0,encodedMACKey.length,"HmacSHA256");
+      generatedMAC = generateMAC(MACinput, MACKey);
 
+      // Check the MAC
+      validMAC = Arrays.equals(MAC, generatedMAC);
       if (!validMAC) {
         System.out.println("Invalid MAC");
       } else {
@@ -58,16 +81,17 @@ public class Receiver {
       }
 
       // Get our private key
-      String p2PrivateKeyString = readFile("party2PrivateKey.txt");
-      byte[] privateKeyBytes = Base64.getDecoder().decode(p2PrivateKeyString);
-      PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
-      KeyFactory kf = KeyFactory.getInstance("RSA");
-      PrivateKey p2PrivateKey = kf.generatePrivate(keySpec);
+      p2PrivateKeyString = readFile("party2PrivateKey.txt");
+      privateKeyBytes = Base64.getDecoder().decode(p2PrivateKeyString);
+      keySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
+      kf = KeyFactory.getInstance("RSA");
+      p2PrivateKey = kf.generatePrivate(keySpec);
 
-      byte[] encodedAESKey = decryptRSA(encryptedAESKey, p2PrivateKey);
-      SecretKey AESKey = new SecretKeySpec(encodedAESKey, 0, encodedAESKey.length, "AES");
+      encodedAESKey = decryptRSA(encryptedAESKey, p2PrivateKey);
+      AESKey = new SecretKeySpec(encodedAESKey, 0, encodedAESKey.length, "AES");
       
-      String message = decrypt(aesAlgorithm, ciphertext, AESKey, AESIV);
+      message = decrypt(aesAlgorithm, ciphertext, AESKey, AESIV);
+
       System.out.println("\nDecrypted Message:\n");
       System.out.println(message);
       System.out.println("---------------------------------------------------");
@@ -75,7 +99,6 @@ public class Receiver {
     } catch (Exception e) {
       System.out.println("ERROR: " + e.getMessage());
     }
-    
   }
 
   /**
@@ -152,18 +175,13 @@ public class Receiver {
    * @throws InvalidAlgorithmParameterException
    */
   public static byte[] decryptRSA(byte[] ciphertext, PrivateKey key) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException, InvalidAlgorithmParameterException {
-    
     // Create a cipher object
     Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
     cipher.init(Cipher.DECRYPT_MODE, key);
-    
-    // Add data to the cipher
-    cipher.update(ciphertext);
-  
-    // Encrypt the data
-    byte[] plaintext = cipher.doFinal();	 
-    return plaintext;
 
+    // Encrypt the data
+    byte[] plaintext = cipher.doFinal(ciphertext);	 
+    return plaintext;
   }
 
   /**

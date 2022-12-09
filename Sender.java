@@ -30,22 +30,24 @@ import javax.crypto.IllegalBlockSizeException;
 public class Sender {
   public static void main(String[] args) {
     SecretKey MACKey;
-    String p2PublicKeyString = "";
-    PublicKey p2PublicKey;
     SecretKey AESKey;
+    PublicKey p2PublicKey;
     String message = "";
+    String p2PublicKeyString = "";
     byte[] ciphertext;
     byte[] encryptedAESKey;
     byte[] MAC;
     byte[] data;
     byte[] encodedKey;
-    String aesAlgorithm = "AES/CBC/PKCS5Padding";
+    byte[] publicKeyBytes;
     byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0 };
-    byte[] publicKeyBytes;
+    String aesAlgorithm = "AES/CBC/PKCS5Padding";
     IvParameterSpec AESIV = new IvParameterSpec(iv);
 
     try {
+      System.out.println("---------------------------------------------------");
+
       // Generate an AES key
       AESKey = generateAESKey(256);
       
@@ -74,6 +76,8 @@ public class Sender {
       
       // Write MAC+encryptedAESKey+ciphertext to TransmittedData
       writeBytes("TransmittedData.txt", data);
+
+      System.out.println("---------------------------------------------------");
 
     } catch (Exception e) {
       // Handle exception
