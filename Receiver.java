@@ -13,7 +13,6 @@ import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Scanner;
@@ -33,8 +32,8 @@ public class Receiver {
     byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0 };
     IvParameterSpec AESIV = new IvParameterSpec(iv);
-
     try {
+      System.out.println("---------------------------------------------------");
       Path filePath = Paths.get("TransmittedData.txt");
       long fileSize = Files.size(filePath);
       
@@ -42,12 +41,12 @@ public class Receiver {
       byte[] MAC = Arrays.copyOfRange(data, 0, 32);
 
       byte[] encryptedAESKey = Arrays.copyOfRange(data, 32, 288);
-      byte[] cipherText = Arrays.copyOfRange(data, 288, (int)(fileSize));
+      byte[] ciphertext = Arrays.copyOfRange(data, 288, (int)(fileSize));
 
-      byte[] MACinput = joinByteArray(encryptedAESKey, cipherText);
+      byte[] MACinput = joinByteArray(encryptedAESKey, ciphertext);
 
-      byte[] encodedKey = (Base64.getDecoder().decode(readFile("mackey.txt")));
-      SecretKey MACKey = new SecretKeySpec(encodedKey,0,encodedKey.length,"HmacSHA256");
+      byte[] encodedMACKey = (Base64.getDecoder().decode(readFile("mackey.txt")));
+      SecretKey MACKey = new SecretKeySpec(encodedMACKey,0,encodedMACKey.length,"HmacSHA256");
       byte[] generatedMAC = generateMAC(MACinput, MACKey);
 
       boolean validMAC = Arrays.equals(MAC, generatedMAC);
@@ -65,11 +64,13 @@ public class Receiver {
       KeyFactory kf = KeyFactory.getInstance("RSA");
       PrivateKey p2PrivateKey = kf.generatePrivate(keySpec);
 
-      System.out.println(Base64.getEncoder().encodeToString(p2PrivateKey.getEncoded()));
-      System.out.println(Base64.getEncoder().encodeToString(encryptedAESKey));
+      byte[] encodedAESKey = decryptRSA(encryptedAESKey, p2PrivateKey);
+      SecretKey AESKey = new SecretKeySpec(encodedAESKey, 0, encodedAESKey.length, "AES");
       
-      byte[] AESKey = decryptRSA(encryptedAESKey, p2PrivateKey);
-      System.out.println(Base64.getEncoder().encodeToString(AESKey));
+      String message = decrypt(aesAlgorithm, ciphertext, AESKey, AESIV);
+      System.out.println("\nDecrypted Message:\n");
+      System.out.println(message);
+      System.out.println("---------------------------------------------------");
       
     } catch (Exception e) {
       System.out.println("ERROR: " + e.getMessage());
@@ -79,8 +80,8 @@ public class Receiver {
 
   /**
    * Reads the specified file
-   * @param filename
-   * @return (String) data
+   * @param filename - the string path to the file
+   * @return a string containing the data read from the file
    * @throws FileNotFoundException
    */
   public static String readFile(String filename) throws FileNotFoundException {
@@ -95,32 +96,53 @@ public class Receiver {
     return data;
   }
 
-  public static byte[] readBytes(String file) throws IOException {
-    Path path = Paths.get(file);
+  /**
+   * Reads all bytes in a file. Note that this method is intended for simple cases where it is convenient to
+   * read all bytes into a byte array. It is not intended for reading in large files.
+   * @param filename - the path string to the file
+   * @return a byte array containing the bytes read from the file
+   * @throws IOException
+   */
+  public static byte[] readBytes(String filename) throws IOException {
+    Path path = Paths.get(filename);
     byte[] data = Files.readAllBytes(path);
     return data;
   }
 
-  public static String decrypt(String algorithm, byte[] cipherText, SecretKey key,
-    IvParameterSpec iv) throws NoSuchPaddingException, NoSuchAlgorithmException,
+  /**
+   * Decrypts ciphertext with the specified algorithm, SecretKey, and iv
+   * @param algorithm - the name of the transformation, e.g., <i>AES/CBC/PKCS5Padding</i>. See the Cipher
+   * section in the Java Security Standard Algorithm Names Specification for information about standard
+   * transformation names.
+   * @param ciphertext - a byte array containing the ciphertext
+   * @param key - the SecretKey
+   * @param iv - the initialization vector
+   * @return a string containing the decrypted plaintext
+   * @throws NoSuchPaddingException
+   * @throws NoSuchAlgorithmException
+   * @throws InvalidAlgorithmParameterException
+   * @throws InvalidKeyException
+   * @throws BadPaddingException
+   * @throws IllegalBlockSizeException
+   * @throws UnsupportedEncodingException
+   */
+  public static String decrypt(String algorithm, byte[] ciphertext, SecretKey key, IvParameterSpec iv
+    ) throws NoSuchPaddingException, NoSuchAlgorithmException,
     InvalidAlgorithmParameterException, InvalidKeyException,
-    BadPaddingException, IllegalBlockSizeException {
-    
+    BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException {
     Cipher cipher = Cipher.getInstance(algorithm);
     cipher.init(Cipher.DECRYPT_MODE, key, iv);
 
-    byte[] plainText = cipher.doFinal(cipherText);
+    byte[] plaintext = cipher.doFinal(ciphertext);
 
-    return new String(plainText);
+    return new String(plaintext, "UTF-8");
   } 
 
   /**
-   * Decrypts using the given algorithm, message, PublicKey, and iv
-   * @param algorithm
-   * @param message
-   * @param key
-   * @param iv
-   * @return (byte[]) the ciphertext
+   * Decrypts ciphertext using <i>RSA/ECB/PKCS1Padding</i>
+   * @param ciphertext - the ciphertext to be decrypted
+   * @param key - a private key
+   * @return a byte array containing the decrypted text
    * @throws InvalidKeyException
    * @throws NoSuchAlgorithmException
    * @throws NoSuchPaddingException
@@ -139,16 +161,16 @@ public class Receiver {
     cipher.update(ciphertext);
   
     // Encrypt the data
-    byte[] cipherText = cipher.doFinal();	 
-    return cipherText;
+    byte[] plaintext = cipher.doFinal();	 
+    return plaintext;
 
   }
 
   /**
-   * Generates a MAC (HMACSHA256) of the message with the given key
-   * @param message
-   * @param key
-   * @return (String) the MAC
+   * Generates a MAC <i>(HMACSHA256)</i> of the message with the given key
+   * @param message - the data in bytes
+   * @param key - the key
+   * @return the MAC result
    * @throws NoSuchAlgorithmException
    * @throws InvalidKeyException
    */
@@ -165,6 +187,13 @@ public class Receiver {
     return macResult;
   }
 
+  /**
+   * Combines two byte arrays into one
+   * @param byte1 - the first byte array containing data
+   * @param byte2 - the second byte array containing data
+   * @return a byte array containing the data
+   * @throws IOException
+   */
   public static byte[] joinByteArray(byte[] byte1, byte[] byte2) throws IOException {
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream( );
     outputStream.write(byte1);
