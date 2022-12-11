@@ -29,11 +29,15 @@ import javax.crypto.IllegalBlockSizeException;
 
 public class Sender {
   public static void main(String[] args) {
+    Scanner scanner = new Scanner(System.in);
     SecretKey MACKey;
     SecretKey AESKey;
-    PublicKey p2PublicKey;
+    PublicKey publicKey;
     String message = "";
-    String p2PublicKeyString = "";
+    String messageFile = "";
+    String publicKeyFile = "";
+    String publicKeyString = "";
+    String macKeyFile = "";
     byte[] ciphertext;
     byte[] encryptedAESKey;
     byte[] MAC;
@@ -52,22 +56,34 @@ public class Sender {
       AESKey = generateAESKey(256);
       
       // Read the message we want to send
-      message = readFile("party1message.txt");
+      System.out.println("Enter the file for your message:");
+      System.out.print(">");
+      messageFile = scanner.nextLine();
+      System.out.println();
+      message = readFile(messageFile);
 
       // Encrypt our message with AES
       ciphertext = encrypt(aesAlgorithm, message, AESKey, AESIV);
 
       // Get the receiver's public key
-      p2PublicKeyString = readFile("party2PublicKey.txt");
-      publicKeyBytes = Base64.getDecoder().decode(p2PublicKeyString);
-      p2PublicKey = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(publicKeyBytes));
+      System.out.println("Enter the file containing the receiver's public key:");
+      System.out.print(">");
+      publicKeyFile = scanner.nextLine();
+      System.out.println();
+      publicKeyString = readFile(publicKeyFile);
+      publicKeyBytes = Base64.getDecoder().decode(publicKeyString);
+      publicKey = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(publicKeyBytes));
 
       // Encrypt the AES key with the receiver's public key
-      encryptedAESKey = encryptRSA(AESKey.getEncoded(), p2PublicKey);
+      encryptedAESKey = encryptRSA(AESKey.getEncoded(), publicKey);
 
       // Generate a MAC
       data = joinByteArray(encryptedAESKey, ciphertext);
-      encodedKey = (Base64.getDecoder().decode(readFile("mackey.txt")));
+      System.out.println("Enter the file containing the mac key:");
+      System.out.print(">");
+      macKeyFile = scanner.nextLine();
+      System.out.println();
+      encodedKey = (Base64.getDecoder().decode(readFile(macKeyFile)));
       MACKey = new SecretKeySpec(encodedKey,0,encodedKey.length,"HmacSHA256");
       MAC = generateMAC(data, MACKey);
       
@@ -76,6 +92,8 @@ public class Sender {
       
       // Write MAC+encryptedAESKey+ciphertext to TransmittedData
       writeBytes("TransmittedData.txt", data);
+
+      scanner.close();
 
       System.out.println("---------------------------------------------------");
 

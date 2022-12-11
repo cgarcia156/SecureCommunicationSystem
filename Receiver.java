@@ -1,6 +1,7 @@
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
@@ -28,6 +29,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class Receiver {
   public static void main(String[] args) {
+    Scanner scanner = new Scanner(System.in);
     Path filePath;
     long fileSize;
     byte[] data;
@@ -46,7 +48,10 @@ public class Receiver {
     KeyFactory kf;
     PKCS8EncodedKeySpec keySpec;
     String message = "";
-    String p2PrivateKeyString = "";
+    String macKeyFile = "";
+    String outputFile = "";
+    String privateKeyFile = "";
+    String privateKeyString = "";
     String aesAlgorithm = "AES/CBC/PKCS5Padding";
     byte[] defaultIV = { 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0 };
@@ -68,21 +73,31 @@ public class Receiver {
       MACinput = joinByteArray(encryptedAESKey, ciphertext);
 
       // Generate a MAC based on the rest of the encrypted data
-      encodedMACKey = (Base64.getDecoder().decode(readFile("mackey.txt")));
+      System.out.println("Enter the file containing the mac key:");
+      System.out.print(">");
+      macKeyFile = scanner.nextLine();
+      System.out.println();
+      encodedMACKey = (Base64.getDecoder().decode(readFile(macKeyFile)));
       MACKey = new SecretKeySpec(encodedMACKey,0,encodedMACKey.length,"HmacSHA256");
       generatedMAC = generateMAC(MACinput, MACKey);
 
       // Check the MAC
       validMAC = Arrays.equals(MAC, generatedMAC);
       if (!validMAC) {
-        System.out.println("Invalid MAC");
+        scanner.close();
+        throw new Exception("Invalid MAC");
       } else {
-        System.out.println("Message Validated");
+        System.out.println("Message Validated\n");
       }
 
+
       // Get our private key
-      p2PrivateKeyString = readFile("party2PrivateKey.txt");
-      privateKeyBytes = Base64.getDecoder().decode(p2PrivateKeyString);
+      System.out.println("Enter the file containing your private key:");
+      System.out.print(">");
+      privateKeyFile = scanner.nextLine();
+      System.out.println();
+      privateKeyString = readFile(privateKeyFile);
+      privateKeyBytes = Base64.getDecoder().decode(privateKeyString);
       keySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
       kf = KeyFactory.getInstance("RSA");
       p2PrivateKey = kf.generatePrivate(keySpec);
@@ -92,13 +107,20 @@ public class Receiver {
       
       message = decrypt(aesAlgorithm, ciphertext, AESKey, AESIV);
 
-      System.out.println("\nDecrypted Message:\n");
-      System.out.println(message);
+      System.out.println("Enter a file to write the message:");
+      System.out.print(">");
+      outputFile = scanner.nextLine();
+      System.out.println();
+      writeToFile(outputFile, message);
+      System.out.println("Message written to " + outputFile);
+      System.out.println();
+      scanner.close();
       System.out.println("---------------------------------------------------");
       
     } catch (Exception e) {
       System.out.println("ERROR: " + e.getMessage());
     }
+    
   }
 
   /**
@@ -117,6 +139,18 @@ public class Receiver {
     reader.close();
 
     return data;
+  }
+
+  /**
+   * Writes data to the specified file
+   * @param filename
+   * @param data
+   * @throws IOException
+   */
+  public static void writeToFile(String filename, String data) throws IOException {
+    FileWriter writer = new FileWriter(filename);
+    writer.write(data);
+    writer.close();
   }
 
   /**
