@@ -132,10 +132,11 @@ public class Receiver {
   public static String readFile(String filename) throws FileNotFoundException {
     File file = new File(filename);
     Scanner reader = new Scanner(file);
-    String data = "";
-    while (reader.hasNextLine()) {
-      data += reader.nextLine();
-    }
+
+    // we just need to use \\Z as delimiter
+    reader.useDelimiter("\\Z");
+
+    String data = reader.next();
     reader.close();
 
     return data;

@@ -106,17 +106,18 @@ public class Sender {
 
   /**
    * Reads the specified file
-   * @param filename
-   * @return (String) data
+   * @param filename - the system-dependent filename
+   * @return a string containing the data read from the file
    * @throws FileNotFoundException
    */
   public static String readFile(String filename) throws FileNotFoundException {
     File file = new File(filename);
     Scanner reader = new Scanner(file);
-    String data = "";
-    while (reader.hasNextLine()) {
-      data += reader.nextLine();
-    }
+
+    // we just need to use \\Z as delimiter
+    reader.useDelimiter("\\Z");
+
+    String data = reader.next();
     reader.close();
 
     return data;
@@ -124,8 +125,8 @@ public class Sender {
 
   /**
    * Writes data to the specified file
-   * @param filename
-   * @param data
+   * @param filename - the system-dependent filename
+   * @param data - the string to be written
    * @throws IOException
    */
   public static void writeToFile(String filename, String data) throws IOException {
@@ -136,8 +137,8 @@ public class Sender {
 
   /**
    * Writes a byte array to the specified file
-   * @param filename
-   * @param data 
+   * @param filename - the system-dependent filename
+   * @param data - the byte array to be written
    * @throws IOException
    */
   public static void writeBytes(String filename, byte[] data) throws IOException {
