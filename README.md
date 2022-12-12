@@ -24,7 +24,6 @@
     <li>
       <a href="#getting-started">Getting Started</a>
     </li>
-    <li><a href="#usage">Usage</a></li>
     <li><a href="#contact">Contact</a></li>
   </ol>
 </details>
@@ -39,9 +38,13 @@ Each of them holds his/her own RSA private key. Each party’s message (from a .
 sending it to another party. The AES key is encrypted using the receiver’s RSA public key and the encrypted AES key is sent
 together with the encrypted message. A message authentication code is sent with the transmitted data. 
 
-See the specific format of commands <a href="#usage">here</a>.
-
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Algorithms Used
+* AES - AES/CBC/PKCS5Padding (256 bit key)
+* RSA - RSA/ECB/PKCS1Padding (2048 bit key)
+* MAC - HMACSHA256 (256 bit key)
+
 
 ### Built With
 
@@ -51,17 +54,16 @@ See the specific format of commands <a href="#usage">here</a>.
 <!-- GETTING STARTED -->
 ## Getting Started
 
-1. Simply clone the repo to get your own local copy
+Simply clone the repo to get your own local copy
   ```sh
   git clone https://github.com/cgarcia156/SecureCommunicationSystem.git
   ```
-
+You can generate keys using KeyGeneration.java
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
 <!-- USAGE EXAMPLES -->
-## Usage
-### Sender
+### Usage
+#### Sender
 You will need text files containing:
   <li> The public key of the person you want to send the message to </li>
   <li> The message you wish to send </li>
@@ -76,7 +78,7 @@ Note: The receiver will need to know the MAC key in advance.
   “TransmittedData.txt”.
 </p>
 
-### Receiver
+#### Receiver
 You will need text files containing:
   <li> Your private key </li> 
   <li> The MAC key </li> 
