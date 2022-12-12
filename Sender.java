@@ -2,7 +2,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidAlgorithmParameterException;
@@ -11,7 +10,6 @@ import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
-import java.security.SecureRandom;
 import java.security.spec.X509EncodedKeySpec;
 
 import java.util.Base64;
@@ -109,7 +107,7 @@ public class Sender {
       // Handle exception
       System.out.println("ERROR: " + e.getMessage());
     }
-    
+
   }
 
   /**
@@ -132,18 +130,6 @@ public class Sender {
   }
 
   /**
-   * Writes data to the specified file
-   * @param filename - the system-dependent filename
-   * @param data - the string to be written
-   * @throws IOException
-   */
-  public static void writeToFile(String filename, String data) throws IOException {
-    FileWriter writer = new FileWriter(filename);
-    writer.write(data);
-    writer.close();
-  }
-
-  /**
    * Writes a byte array to the specified file
    * @param filename - the system-dependent filename
    * @param data - the byte array to be written
@@ -158,8 +144,8 @@ public class Sender {
 
   /**
    * Generates an AES key of the given length (in bits)
-   * @param keySize 
-   * @return (SecretKey) key
+   * @param keySize - the key size in bits
+   * @return the new key
    * @throws NoSuchAlgorithmException
    */
   public static SecretKey generateAESKey(int keySize) throws NoSuchAlgorithmException {
@@ -170,41 +156,21 @@ public class Sender {
   }
 
   /**
-   * Generates a random IV
-   * @return (IvParameterSpec)
-   */
-  public static IvParameterSpec generateIv() {
-    byte[] iv = new byte[16];
-    new SecureRandom().nextBytes(iv);
-    return new IvParameterSpec(iv);
-  }
-
-  /**
-   * Converts a SecretKey to a String
-   * @param secretKey
-   * @return (String)
-   * @throws NoSuchAlgorithmException
-   */
-  public static String convertSecretKeyToString(SecretKey secretKey) throws NoSuchAlgorithmException {
-    byte[] rawData = secretKey.getEncoded();
-    String encodedKey = Base64.getEncoder().encodeToString(rawData);
-    return encodedKey;
-  }
-
-  /**
-   * Encrypts using the given algorithm, message, SecretKey, and iv
-   * @param algorithm
-   * @param message
-   * @param key
-   * @param iv
-   * @return (String) the ciphertext
-   * @throws InvalidKeyException
-   * @throws NoSuchAlgorithmException
+   * Encrypts a message with the specified algorithm, SecretKey, and iv
+   * @param algorithm - the name of the transformation, e.g., <i>AES/CBC/PKCS5Padding</i>. See the Cipher
+   * section in the Java Security Standard Algorithm Names Specification for information about standard
+   * transformation names.
+   * @param message - the message
+   * @param key - the SecretKey
+   * @param iv - the initialization vector
+   * @return a byte array containing the ciphertext
    * @throws NoSuchPaddingException
+   * @throws NoSuchAlgorithmException
+   * @throws InvalidAlgorithmParameterException
+   * @throws InvalidKeyException
    * @throws BadPaddingException
    * @throws IllegalBlockSizeException
-   * @throws InvalidAlgorithmParameterException
-   * @throws IOException
+   * @throws UnsupportedEncodingException
    */
   public static byte[] encrypt(String algorithm, String message, SecretKey key, IvParameterSpec iv) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException, IOException {
     
@@ -222,12 +188,10 @@ public class Sender {
   }
 
   /**
-   * Encrypts using the given algorithm, message, PublicKey, and iv
-   * @param algorithm
-   * @param message
-   * @param key
-   * @param iv
-   * @return (byte[]) the ciphertext
+   * Encrypts a message using <i>RSA/ECB/PKCS1Padding</i>
+   * @param message - the message to be encrypted
+   * @param key - the public key of the receiver
+   * @return a byte array containing the ciphertext
    * @throws InvalidKeyException
    * @throws NoSuchAlgorithmException
    * @throws NoSuchPaddingException
@@ -241,20 +205,17 @@ public class Sender {
     // Create a cipher object
     Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
     cipher.init(Cipher.ENCRYPT_MODE, key);
-    
-    // Add data to the cipher  
-    cipher.update(message);
   
     // Encrypt the data
-    byte[] cipherText = cipher.doFinal();	 
-    return cipherText;
+    byte[] ciphertext = cipher.doFinal(message);	 
+    return ciphertext;
   }
 
   /**
-   * Generates a MAC (HMACSHA256) of the message with the given key
-   * @param message
-   * @param key
-   * @return (String) the MAC
+   * Generates a MAC <i>(HMACSHA256)</i> of the message with the given key
+   * @param message - the data in bytes
+   * @param key - the key
+   * @return the MAC result
    * @throws NoSuchAlgorithmException
    * @throws InvalidKeyException
    */
@@ -272,10 +233,10 @@ public class Sender {
   }
 
   /**
-   * Combines two byte arrays
-   * @param byte1
-   * @param byte2
-   * @return byte[]
+   * Combines two byte arrays into one
+   * @param byte1 - the first byte array containing data
+   * @param byte2 - the second byte array containing data
+   * @return a byte array containing the data
    * @throws IOException
    */
   public static byte[] joinByteArray(byte[] byte1, byte[] byte2) throws IOException {

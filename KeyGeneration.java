@@ -15,7 +15,9 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.crypto.spec.IvParameterSpec;
 
-
+/**
+ * Used to generate keys for the secure communication system
+ */
 public class KeyGeneration {
   public static void main(String[] args) {
     try {
@@ -28,15 +30,20 @@ public class KeyGeneration {
       byte[] iv = generateIv().getIV();
       
       writeToFile("iv.txt", Base64.getEncoder().encodeToString(iv));
-      //writeToFile("mac_key.txt", Base64.getEncoder().encodeToString(MACKey.getEncoded()));
-      //writeToFile("my_private_key.txt", privateKeyString);
-      //writeToFile("my_public_key.txt", publicKeyString);
+      writeToFile("mac_key.txt", Base64.getEncoder().encodeToString(MACKey.getEncoded()));
+      writeToFile("my_private_key.txt", privateKeyString);
+      writeToFile("my_public_key.txt", publicKeyString);
 
     } catch (Exception e) {
       System.out.println(e.getMessage());
     }
   }
 
+  /**
+   * Generates a MAC key <i>(HMACSHA256)</i>
+   * @return the new MAC key
+   * @throws NoSuchAlgorithmException
+   */
   public static Key generateMACKey() throws NoSuchAlgorithmException {
     // Generate a key to use for MAC
     KeyGenerator keyGen = KeyGenerator.getInstance("HmacSHA256");
@@ -47,7 +54,7 @@ public class KeyGeneration {
 
   /**
    * Creates a keypair for RSA
-   * @return (KeyPair)
+   * @return the generated key pair
    * @throws NoSuchAlgorithmException
    */
   public static KeyPair generateRSAPair() throws NoSuchAlgorithmException {
@@ -65,8 +72,8 @@ public class KeyGeneration {
 
   /**
    * Converts a SecretKey to a String
-   * @param secretKey
-   * @return (String)
+   * @param secretKey - the secret key
+   * @return A String containing the resulting Base64 encoded characters
    * @throws NoSuchAlgorithmException
    */
   public static String convertSecretKeyToString(SecretKey secretKey) throws NoSuchAlgorithmException {
@@ -76,9 +83,9 @@ public class KeyGeneration {
   }
 
   /**
-   * Converts a String to a SecretKey
-   * @param encodedKey
-   * @return (SecretKey)
+   * Converts a String to a SecretKey <i>(AES)</i>
+   * @param encodedKey - the key encoded as a String
+   * @return the secret key
    */
   public static SecretKey convertStringToSecretKey(String encodedKey) {
     byte[] decodedKey = Base64.getDecoder().decode(encodedKey);
@@ -88,8 +95,8 @@ public class KeyGeneration {
 
   /**
    * Writes data to the specified file
-   * @param filename
-   * @param data
+   * @param filename - The system-dependent filename
+   * @param data - the String to be written
    * @throws IOException
    */
   public static void writeToFile(String filename, String data) throws IOException {
@@ -100,7 +107,7 @@ public class KeyGeneration {
 
   /**
    * Generates a random IV
-   * @return (IvParameterSpec)
+   * @return the iv
    */
   public static IvParameterSpec generateIv() {
     byte[] iv = new byte[16];

@@ -90,7 +90,6 @@ public class Receiver {
         System.out.println("Message Validated\n");
       }
 
-
       // Get our private key
       System.out.println("Enter the file containing your private key:");
       System.out.print(">");
@@ -114,6 +113,7 @@ public class Receiver {
       AESIV = new IvParameterSpec(iv);
       message = decrypt(aesAlgorithm, ciphertext, AESKey, AESIV);
 
+      // Write the message in the specified output file
       System.out.println("Enter a file to write the message:");
       System.out.print(">");
       outputFile = scanner.nextLine();
@@ -121,6 +121,7 @@ public class Receiver {
       writeToFile(outputFile, message);
       System.out.println("Message written to " + outputFile);
       System.out.println();
+      
       scanner.close();
       System.out.println("---------------------------------------------------");
       
