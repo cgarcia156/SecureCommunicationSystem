@@ -25,20 +25,16 @@ public class KeyGeneration {
       String privateKeyString = Base64.getEncoder().encodeToString(privateKey.getEncoded());
       String publicKeyString = Base64.getEncoder().encodeToString(publicKey.getEncoded());
       Key MACKey = generateMACKey();
-      writeToFile("mackey.txt", Base64.getEncoder().encodeToString(MACKey.getEncoded()));
-      writeToFile("party1PrivateKey.txt", privateKeyString);
-      writeToFile("party1PublicKey.txt", publicKeyString);
+      byte[] iv = generateIv().getIV();
+      
+      writeToFile("iv.txt", Base64.getEncoder().encodeToString(iv));
+      //writeToFile("mac_key.txt", Base64.getEncoder().encodeToString(MACKey.getEncoded()));
+      //writeToFile("my_private_key.txt", privateKeyString);
+      //writeToFile("my_public_key.txt", publicKeyString);
 
     } catch (Exception e) {
       System.out.println(e.getMessage());
     }
-  }
-
-  public static SecretKey generateKey(int n) throws NoSuchAlgorithmException {
-    KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
-    keyGenerator.init(n);
-    SecretKey key = keyGenerator.generateKey();
-    return key;
   }
 
   public static Key generateMACKey() throws NoSuchAlgorithmException {

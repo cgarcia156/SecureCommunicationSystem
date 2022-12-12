@@ -50,12 +50,12 @@ public class Receiver {
     String message = "";
     String macKeyFile = "";
     String outputFile = "";
+    String ivFile = "";
     String privateKeyFile = "";
     String privateKeyString = "";
     String aesAlgorithm = "AES/CBC/PKCS5Padding";
-    byte[] defaultIV = { 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0 };
-    IvParameterSpec AESIV = new IvParameterSpec(defaultIV);
+    byte[] iv;
+    IvParameterSpec AESIV;
 
     try {
       System.out.println("---------------------------------------------------");
@@ -105,6 +105,13 @@ public class Receiver {
       encodedAESKey = decryptRSA(encryptedAESKey, p2PrivateKey);
       AESKey = new SecretKeySpec(encodedAESKey, 0, encodedAESKey.length, "AES");
       
+      // Read the iv
+      System.out.println("Enter the file containing the initialization vector:");
+      System.out.print(">");
+      ivFile = scanner.nextLine();
+      System.out.println();
+      iv = Base64.getDecoder().decode(readFile(ivFile));
+      AESIV = new IvParameterSpec(iv);
       message = decrypt(aesAlgorithm, ciphertext, AESKey, AESIV);
 
       System.out.println("Enter a file to write the message:");

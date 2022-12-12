@@ -35,6 +35,7 @@ public class Sender {
     PublicKey publicKey;
     String message = "";
     String messageFile = "";
+    String ivFile = "";
     String publicKeyFile = "";
     String publicKeyString = "";
     String macKeyFile = "";
@@ -44,10 +45,9 @@ public class Sender {
     byte[] data;
     byte[] encodedKey;
     byte[] publicKeyBytes;
-    byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0 };
+    byte[] iv;
     String aesAlgorithm = "AES/CBC/PKCS5Padding";
-    IvParameterSpec AESIV = new IvParameterSpec(iv);
+    IvParameterSpec AESIV;
 
     try {
       System.out.println("---------------------------------------------------");
@@ -61,6 +61,14 @@ public class Sender {
       messageFile = scanner.nextLine();
       System.out.println();
       message = readFile(messageFile);
+
+      // Read the iv
+      System.out.println("Enter the file containing the initialization vector:");
+      System.out.print(">");
+      ivFile = scanner.nextLine();
+      System.out.println();
+      iv = Base64.getDecoder().decode(readFile(ivFile));
+      AESIV = new IvParameterSpec(iv);
 
       // Encrypt our message with AES
       ciphertext = encrypt(aesAlgorithm, message, AESKey, AESIV);
