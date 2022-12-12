@@ -48,7 +48,7 @@ together with the encrypted message. A message authentication code is sent with 
 
 ### Built With
 
-* Java
+* Java (java.security, java.crypto)
 
 
 <!-- GETTING STARTED -->
