@@ -72,21 +72,27 @@ You will need text files containing:
 Note: The receiver will need to know the MAC key in advance.
 </br>
 </br>
-<p>
-  When running the program, you will be prompted to enter the names of these files.
-  When the program finishes, the data will be stored (in byte form) in
-  “TransmittedData.txt”.
-</p>
+<p> When running the program, you will be prompted to enter the names of these files. </p>
+
+<div align-"left">
+<img src="Images/Sender_Example.png" alt="Sender_Example" width="400" height="220">
+</div>
+<br>
+When the program finishes, the data will be stored (in byte form) in “TransmittedData.txt”.
+
 
 #### Receiver
 You will need text files containing:
   <li> Your private key </li> 
   <li> The MAC key </li> 
   <li> The initialization vector for AES </li> 
-  </br> 
+  <br> 
 When running the program, you will be prompted to enter the names of these files along
 with a file for the output.
-
+<div align-"left">
+<img src="Images/Receiver_Example.png" alt="Receiver_Example" width="400" height="280">
+</div>
+<br>
 
 
 
